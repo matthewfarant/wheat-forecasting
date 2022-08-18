@@ -1,0 +1,626 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usetheme[compress]{Berlin}
+\usecolortheme{spruce}
+
+\title{\textbf{Actuaries Climate Index and Multivariate Wheat Yield Modelling: A Comparison of VAR and LSTM}}
+\subtitle{Final Year Project}
+\author{Matthew Farant Andreson | TP053983}
+\institute{Asia Pacific University of Technology and Innovation}
+\date{\today}
+\begin{document}
+\usebackgroundtemplate{\includegraphics[scale=0.5]{imageedit_10_6670491566.png}}
+
+\AtBeginSection{\frame{\sectionpage}}
+
+%----SLIDE 1----
+\begin{frame}
+    \titlepage    
+\end{frame}
+
+%----SLIDE 2----
+\usebackgroundtemplate{}
+\begin{frame}{Outline}
+    % \begin{columns}[t]
+    %     \begin{column}{.5\textwidth}
+    %         \tableofcontents[sections={1-2}]
+    %     \end{column}
+    %     \begin{column}{.5\textwidth}
+    %         \tableofcontents[sections={3-5}]
+    %     \end{column}
+    % \end{columns}
+    \tableofcontents[hideallsubsections]
+\end{frame}
+
+\section{Introduction}
+\subsection{Background of the Study}
+%----SLIDE 3----
+\begin{frame}{Raging Climate Crisis in Australia}
+\large{\textbf{Why Australia?}}
+    \begin{itemize}
+        \item The increasing frequency of extreme climatic events in Australia has been alarming over the last six decades (CSIRO, 2020)
+        \item Its impact extents to various fields, including the agriculture sector that significantly contributes to the national food security (Ojumu et al., 2020)
+    \end{itemize}
+\end{frame}
+
+%----SLIDE 4----
+\begin{frame}{Wheat Production at Risk}
+   \begin{tabular}{cl}
+        \begin{tabular}{c}
+            \scriptsize{\textbf{Figure 1} 2022/2023 Global Wheat Export}\\
+            \includegraphics[scale=0.3]{wheat export.png}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+                \begin{itemize}
+                    \item Wheat production needs more focus amid the climate uncertainty
+                    \item Understanding how essential wheat production and the potential impact that climate change can cause has motivated this study to examine the impact of climate risk to Australian wheat yield
+                \end{itemize}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+%----SLIDE 5----
+\begin{frame}{Climate Risk Measured by AACI}
+    \begin{itemize}
+        \item This study used the \textbf{Australian Actuaries Climate Index} (AACI), a retrospective measure of climate change in Australia and its risk towards numerous fields
+        \item The index consists of six components: high temperatures, low temperatures, rainfall/precipitation, drought, wind, and sea level
+        \item Up to this day, there are no initiatives of using the AACI to examine the movement of wheat yield 
+    \end{itemize}
+\end{frame}
+
+\subsection{Problem Statement}
+%----SLIDE 6----
+\begin{frame}{To Sum Up The Problems}
+    \begin{itemize}
+        \item \textbf{Climate change} is a major issue in Australia that manifests itself through the occurrence of extreme weather events
+        \item \textbf{Wheat production} in Australia has experienced more disruptions due to frequent extreme weather incidents
+        \item Therefore, it is important, especially for agriculture and insurance companies, to have the ability to \textbf{forecast} the potential future loss of wheat yield using the best performing forecasting model
+    \end{itemize}
+\end{frame}
+
+%----SLIDE 7----
+\begin{frame}{Why VAR and LSTM?}
+    \begin{itemize}
+        \item The strong relationship between wheat production and climate condition in Australia (Hochman, Gobbett, \& Horan, 2017) suggested a multivariate forecasting approach
+        \item The Vector Autoregression (VAR) model is known for its flexibility and proven success in dealing with dynamic multivariate time series (Zivot \& Wang, 2006)
+        \item The Long Short-Term Memory (LSTM) model is known for its ability to learn complex relationship and solve the vanishing gradient issue (Gonzalez \& Yu, 2018)
+    \end{itemize}
+\end{frame}
+
+\subsection{Research Objective \& Question}
+%----SLIDE 8----
+\begin{frame}{Research Objective \& Question}
+    Formulate both Vector Autoregression (VAR) and Long Short-Term Memory (LSTM) models to forecast Australian wheat yield using the Australian Actuaries Climate Index (AACI) and determine the best performing model
+    \begin{exampleblock}{Research Questions}
+        \begin{enumerate}
+            \item What is the VAR model that is used to forecast the Australian wheat yield? 
+            \item What is the LSTM model that is used to forecast the Australian wheat yield? 
+            \item Based on the performance comparison between VAR and LSTM models, which model is the best performing model?
+        \end{enumerate}
+    \end{exampleblock}
+\end{frame}
+
+\section{Literature Review}
+\subsection{Variables}
+%----SLIDE 9----
+\begin{frame}{The Actuaries Climate Index}
+    The Actuaries Climate Index (ACI) provides a helpful monitoring tool for the frequency of extreme weather and the extent of changes in sea level
+    
+    \vspace{5 pt}
+    \begin{center}
+    \scriptsize{\textbf{Table 1} Components of ACI}\\
+    \end{center}
+    \resizebox{\linewidth}{!}{
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Component & Notation & Measurement\\
+        \hline
+        Drought & $MaxCDD_{std}(j,k)$ & Maximum consecutive dry days ($<$1 mm) in year\\
+        \hline
+        Sea Level & $S_{std}(j,k)$ & Sea level\\
+        \hline
+        Precipitation & ${MaxP^{(5-day)}}_{std}(j,k)$ & Maximum five-day precipitation in month\\
+        \hline
+        Warm Temperatures & $F\hspace{1 pt}T:warm_{std}(j,k)$ & Frequency of temperatures above the $90^{th}$ percentile\\
+        \hline
+        Cool Temperatures & $F\hspace{1 pt}T:cool_{std}(j,k)$ & Frequency of temperatures below the $10^{th}$ percentile\\
+        \hline
+        Wind Power & $F\hspace{1 pt}WP_{std}(j,k)$ & Frequency of strongest wind power\\
+        \hline
+    \end{tabular}}
+    
+    \vspace{10pt}
+    
+    \tiny{(where “j” indicates the month and “k” indicates the year)}
+\end{frame}
+
+%----SLIDE 10---
+\begin{frame}{The Actuaries Climate Index (Cont'd)}
+    \begin{itemize}
+        \item Each component measures the change in standardized form with regard to the 30-years reference period of 1961–1990 (American Academy of Actuaries, 2021)
+        \item The standardized anomaly for each component shall be calculated as the deviation between the current period and the mean of reference period, which will be scaled later by dividing it with the standard deviation of reference period
+    \end{itemize}    
+    \begin{equation}
+        X_{std}(j,k) = \frac{X(j,k)-\mu_{ref}}{\sigma_{ref}}
+    \end{equation}
+\end{frame}
+
+%----SLIDE 11----
+\begin{frame}{The Actuaries Climate Index (Cont'd)}
+    \begin{itemize}
+        \item The index is defined by the average of the standardized components, such that it measures an average departure from the mean in terms of the number of standard deviations
+        \item Higher value of ACI implies higher climate risk
+    \end{itemize}
+    \begin{equation}
+       ACI(j,k)=\frac{1}{6}\sum^{6}_{i=1}C_{i}
+    \end{equation}
+    \scriptsize{where}\\
+    \vspace{10pt}
+    \scriptsize{C=\{$MaxCDD_{std}(j,k)$, $S_{std}(j,k)$, ${MaxP^{(5-day)}}_{std}(j,k)$, $F\hspace{1 pt}T:warm_{std}(j,k)$, -$F\hspace{1 pt}T:cool_{std}(j,k)$, $F\hspace{1 pt}WP_{std}(j,k)$\}}
+\end{frame}
+
+%----SLIDE 12----
+\begin{frame}{The Australian Actuaries Climate Index}
+    \begin{center}
+        \scriptsize{\textbf{Figure 2} Regions of AACI}\\
+        \includegraphics[scale=0.4]{aaci_regions.JPG}
+    \end{center}
+\end{frame}
+
+\subsection{Past Studies}
+%----SLIDE 13----
+\begin{frame}{ACI as a measure of climate risk}
+    \begin{itemize}
+        \item Unlike AACI, the ACI (ACI for North America) has been used in several studies as one of the measures for climate risk
+        \item A study by \textbf{Pan (2021)} suggested that the ACI can provide some insights in crop yield modelling. However, more research is needed as the model changes depending on the \textbf{temporal} and spatial resolution of the data
+    \end{itemize}
+\end{frame}
+
+%-----SLIDE 14----
+% \begin{frame}{ACI as a measure of climate risk (Cont'd)}
+%     \begin{center}
+%         \scriptsize{\textbf{Table 2} Result for Each Model Used by (Pan, 2021)}\\
+%         \includegraphics[scale=0.5]{PAN.JPG}
+%     \end{center}
+% \end{frame}
+
+%----SLIDE 15----
+% \begin{frame}{The Impact of Climate Risk on Wheat Production}
+%     \begin{itemize}
+%         \item A study by \textbf{Cogato et al (2019)} has examined multiple papers around the globe related to the impact of extreme weather events to the agriculture sector
+%         \item Focusing specifically on wheat production, extensive studies has been conducted to test the predictability of wheat production towards numbers of variables such as climate/weather data, satellite data, or both.
+%     \end{itemize}
+% \end{frame}
+
+% %----SLIDE 16----
+% \begin{frame}{The Impact of Climate Risk on Wheat Production}
+%   \begin{center}
+%         \scriptsize{\textbf{Table 2} Past Studies in Wheat Modelling Using Climate Data}\\
+%         \includegraphics[scale=0.55]{climate_wheat_studies.JPG}
+%     \end{center}
+% \end{frame}
+
+%----SLIDE 17----
+\begin{frame}{VAR and LSTM in Multivariate Time Series Forecasting}
+    \begin{itemize}
+        \item LSTM is well-known in outperforming traditional statistical methods in univariate time series forecasting (Azari, Papapetrou, Denic, \& Peters, 2019; Siami-Namini \& Namin, 2018)
+        \item How about multivariate time series forecasting?
+        \begin{itemize}
+            \item VAR performed better in the condition of small dataset and linear relationship between multiple time series (Dissanayake et al., 2021; Kaur et al., 2021)
+            \item LSTM performed better in capturing non-linear relationship (Kuhnert et al., 2021; Zhang et al., 2020)
+            \item A study by Ouhame & Hadi (2019) also explores the possibility of combining both models as an ensemble model
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\section{Research Methodology}
+\subsection{Data Processing \& Analysis}
+%----SLIDE 18----
+\begin{frame}{The Data Used for This Study}
+    \begin{itemize}
+        \item  In this study, there were two main datasets: AACI and wheat yield, which are both classified as a secondary data
+        \item The quarterly \textbf{AACI dataset} is publicly available in the Institute of Actuaries, Australia website in xlsx. extension
+        \item The \textbf{wheat yield dataset} is collected from the Department of Agriculture, Water, and Environment from the year 1981-2020
+    \end{itemize}
+\end{frame}
+
+%----SLIDE 19 ----
+\begin{frame}{Research Flow}
+    \begin{center}
+        \scriptsize{\textbf{Figure 3} Research Flow}\\
+        \includegraphics[scale=0.28]{fyp_flowchart_reversed.jpg}
+    \end{center}
+\end{frame}
+
+%----SLIDE 20 ----
+\begin{frame}{Data Preprocessing \& Analysis}
+    \begin{itemize}
+        \item To gain a sense of the data, an Exploratory Data Analysis (EDA) was conducted in a form of data visualization
+        \item To ensure the quality of the data processed before modelling, feature engineering was conducted for both AACI and wheat yield data
+        \item After the feature engineering process was conducted, the wheat yield data was split into training and testing data (30 years for training + 10 years for testing)
+    \end{itemize}
+\end{frame}
+
+\subsection{Vector Autoregression}
+%----SLIDE 21 ----
+\begin{frame}{Vector Autoregression}
+    \begin{itemize}
+        \item The first multivariate forecasting process was using the Vector Autoregression (VAR) model that is derived from the Autoregressive (AR) model (Zivot \& Wang, 2006)
+        \item An example of a $VAR(1)$ model with two variables/time series, $x$ and $y$
+    \end{itemize}
+    \begin{gather}
+            \underset{variables}{\begin{pmatrix} x_{t}  \\ y_{t} \end{pmatrix}}
+            =
+            \underset{constants}{\begin{pmatrix} \alpha_{x}  \\ \alpha_{y} \end{pmatrix}}
+            +
+            \underset{estimates}{\begin{pmatrix} \beta_{11} & \beta_{12}  \\ \beta_{21} & \beta_{22} \end{pmatrix}}
+            \underset{lags}{\begin{pmatrix} x_{t-1} \\ y_{t-1} \end{pmatrix}}
+            +
+            \underset{errors}{\begin{pmatrix} \epsilon_{xt} \\ \epsilon_{yt} \end{pmatrix}}
+    \end{gather}
+\end{frame}
+
+%----SLIDE 22 ----
+\begin{frame}{The General Form of VAR(p)}
+Hence, a $VAR(p)$ model can be expressed as follows
+    \begin{equation}
+        z_{t} = \alpha + \sum_{n=1}^{p} \phi_{n}z_{n-1} + \epsilon_{t}
+    \end{equation}
+where\\
+\hspace{1cm} $z$ = vector of variables\\
+\hspace{1cm} $\alpha$ = vector of constants\\
+\hspace{1cm} $\phi$ = matrix of estimates\\
+\hspace{1cm} $\epsilon$ = vector of errors
+\end{frame}
+
+%----SLIDE 23 ----
+\begin{frame}{Model Assumptions}
+There are two main assumptions to be considered in the time series data for building a VAR
+model:
+\begin{enumerate}
+    \item Stationarity (Augmented Dickey Fuller test)
+    \item Normal and Independent Errors (Durbin-Watson d test and Jarque-Bera test)
+\end{enumerate}
+Before estimating the parameters in the VAR model, it is also necessary to determine the VAR order or the maximum
+length of lag.
+\end{frame}
+
+%----SLIDE 24 ----
+\begin{frame}{Theoretical VAR Model}
+After the model assumptions are fulfilled, the theoretical VAR model for this particular study will be expressed as follows. Recall that the Principal Component Analysis (PCA) was conducted beforehand to reduce the number of variables used into $n$ Principal Components
+    \begin{gather}
+            \begin{pmatrix} Y_{t}  \\ PC1_{t} \\ PC2_{t} \\ \vdots \\ PCn_{t} \end{pmatrix}
+            =
+            \begin{pmatrix} \alpha_{0}  \\ \alpha_{1} \\ \alpha_{2} \\ \vdots \\ \alpha_{n} \end{pmatrix}
+            +
+            \sum_{i=1}^{p}
+            \begin{pmatrix} \beta_{11,i} & \hdots & \beta_{1(n+1),i} \\
+            \vdots & \ddots & \vdots\\
+            \beta_{(n+1)1,i} & \hdots & \beta_{(n+1)(n+1),i} \end{pmatrix}
+            \begin{pmatrix} Y_{t-i}  \\ PC1_{t-i} \\ PC2_{t-i} \\ \vdots \\ PCn_{t-i} \end{pmatrix}
+            +
+            \begin{pmatrix} \epsilon_{0}  \\ \epsilon_{1} \\ \epsilon_{2} \\ \vdots \\ \epsilon_{n} \end{pmatrix}
+    \end{gather}
+\end{frame}
+
+\subsection{Long Short-Term Memory}
+%----SLIDE 25 ----
+\begin{frame}{Recurrent Neural Network}
+    \begin{tabular}{cl}
+        \begin{tabular}{c}
+        \scriptsize{\textbf{Figure 4} Recurrent Neural Network}\\
+            \includegraphics[scale=0.4]{rnn.JPG}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+                \begin{itemize}
+                    \item The LSTM model that this study used is a type of Recurrent Neural Network (RNN) that commonly used in text processing, time series forecasting, and several other fields
+                    \item RNN loops past information as "memories", hence the current state in RNN is a function of its previous steps
+                \end{itemize}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+%----SLIDE 26 ----
+\begin{frame}{Long Short-Term Memory}
+    \begin{tabular}{cl}
+        \begin{tabular}{c}
+        \scriptsize{\textbf{Figure 5} LSTM Process}\\
+            \includegraphics[scale=0.3]{LSTM.png}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+                \begin{itemize}
+                    \item In practice, RNN can't really handle long-term dependencies. Thankfully, LSTMs don't have this problem
+                    \item It is designed specifically to remember information for long periods of time, hence the name "Long Short-Term Memory"
+                \end{itemize}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+\subsection{Hyperparameter Tuning}
+%----SLIDE 26 ----
+\begin{frame}{Hyperparameter Tuning}
+\begin{itemize}
+    \item One of the essential procedures to enhance NN model performance and minimize manual parameter tuning is called as a hyperparameter tuning (Cho et al., 2020)
+    \item The forecasting performance of a NN layers can be described as a black-box function $f$. The goal of hyperparameter tuning is to maximize the objective function and find the global optimum $x^{*}$, such that $x^{*}= arg \underset{x \in \chi}{max} f(x)$
+    \item Two of the commonly used methods are Random Search (RS) and Bayesian Optimization (BO)
+\end{itemize}
+\end{frame}
+
+%----SLIDE 27 ----
+% \begin{frame}{Bayesian Optimization}
+%     \begin{tabular}{cl}
+%         \begin{tabular}{c}
+%         \scriptsize{\textbf{Figure 6} Illustration of BO with 3 iterations}\\
+%             \includegraphics[scale=0.42]{bayesian.JPG}
+%         \end{tabular}
+%         & \begin{tabular}{l}
+%              \parbox{0.5\linewidth}{
+%                 \begin{itemize}
+%                     \item This study used BO, a sequential approach of hyperparameter tuning that was used to tune the activation function, NN layers, dropout, neurons, and learning rate
+%                     \item The objective function is prescribed over a prior belief in the form of a surrogate function, which is then systematically refined via Bayesian posterior updating
+%                 \end{itemize}
+%                 }
+%         \end{tabular}\\
+%     \end{tabular}
+% \end{frame}
+
+\subsection{Comparing Model Performance}
+%----SLIDE 27 ----
+\begin{frame}{Performance Metrics}
+\begin{item}
+    \item In this study, the Root Mean Squared Error (RMSE) was used due to its interpretability
+    \begin{equation}
+        RMSE = \sqrt{\frac{\sum_{t=1}^{T} (\hat{y_{t}}-y_{t})^{2}}{T}}
+    \end{equation}
+    \item Additionally, the Mean Absolute Percentage Error (MAPE) was also used due to its ability to assess model performance with a benchmark
+    \begin{equation}
+        MAPE = \frac{1}{T}\sum_{t=1}^{T}\bigg|\frac{y_{t}-\hat{y_{t}}}{y_{t}}\bigg|
+    \end{equation}
+\end{item}
+\end{frame}
+
+\section{Result and Discussion}
+\subsection{Exploratory Data Analysis}
+%----SLIDE 28 ----
+\begin{frame}{Exploratory Data Analysis of AACI}
+    \begin{center}
+    \scriptsize{\textbf{Figure 6} Time Series of National AACI}\\
+        \includegraphics[scale=0.45]{aaci.JPG}
+    \end{center}
+\end{frame}
+
+%----SLIDE 29 ----
+\begin{frame}{Comparing AACI with Wheat Yield Data}
+    \begin{center}
+        \scriptsize{\textbf{Figure 7} Time Series of Wheat Yield and AACI}\\
+        \includegraphics[scale=0.48]{aaci2.JPG}
+    \end{center}
+\end{frame}
+
+%----SLIDE 30 ----
+\begin{frame}{Multicollinearity Issue}
+    \begin{tabular}{cl}
+        \begin{tabular}{c}
+        \scriptsize{\textbf{Figure 8} Correlation Matrix}\\
+            \includegraphics[scale=0.45]{correlation.JPG}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+                \begin{itemize}
+                    \item Like a non-stationary data, multicollinearity is a phenomenon that needs to be addressed to avoid biased result for the VAR modelling
+                    \item LSTM didn’t require a dimensionality reduction due to the neural network’s natural ability to put weights in each of the variables (Boehmke \& Greenwell, 2020)
+                \end{itemize}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+\subsection{Vector Autoregression}
+%----SLIDE 31 ----
+\begin{frame}{Principal Components Analysis}
+    \begin{tabular}{cl}
+        \begin{tabular}{c}
+        \scriptsize{\textbf{Figure 9} Scree Plot of PCA}\\
+            \includegraphics[scale=0.45]{pca.JPG}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+             \scriptsize{\textbf{Table 2} ADF Test Result}\\
+                \begin{tabular}{||c c c||} 
+                \hline
+                Variable & No. of Differencing & p-value \\ [0.5ex] 
+                 \hline\hline
+                 Yield & 1 & 0.01 \\ 
+                 \hline
+                 PC1 & 2 & 0.01 \\
+                \hline
+                 PC2 & 2 & 0.01 \\
+                \hline
+                 PC3 & 1 & 0.01475 \\
+                 \hline
+                 PC4 & 2 & 0.02362 \\
+                 \hline
+                 PC5 & 1 & 0.0233 \\ [1ex] 
+                 \hline
+                \end{tabular}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+%---SLIDE 32----
+\begin{frame}{VAR Estimates \& Forecasting Result}
+    \begin{tabular}{cl}
+        \begin{tabular}{c}
+        \scriptsize{\textbf{Figure 10} Actual vs. Forecast Plot (VAR)}\\
+            \includegraphics[scale=0.45]{VAR.JPG}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+            \scriptsize{\textbf{Table 3} VAR Estimates}
+                \begin{table}[ht]\tiny
+\centering
+\begin{tabular}{rlrrrr}
+  \hline
+ & term & estimate & std.error & statistic & p.value \\
+  \hline
+1 & yield.l1 & -0.42 & 0.52 & -0.81 & 0.44 \\ 
+  2 & pc1.l1 & 0.07 & 0.05 & 1.24 & 0.25 \\ 
+  3 & pc2.l1 & 0.02 & 0.05 & 0.43 & 0.68 \\ 
+  4 & pc3.l1 & 0.02 & 0.05 & 0.36 & 0.73 \\ 
+  5 & pc4.l1 & -0.01 & 0.03 & -0.42 & 0.69 \\ 
+  6 & pc5.l1 & 0.05 & 0.05 & 1.04 & 0.33 \\ 
+  7 & yield.l2 & 0.14 & 0.42 & 0.34 & 0.74 \\ 
+  8 & pc1.l2 & 0.09 & 0.05 & 1.77 & 0.12 \\ 
+  9 & pc2.l2 & -0.04 & 0.05 & -0.82 & 0.44 \\ 
+  10 & pc3.l2 & 0.01 & 0.05 & 0.12 & 0.91 \\ 
+  11 & pc4.l2 & 0.00 & 0.04 & 0.12 & 0.90 \\ 
+  12 & pc5.l2 & -0.01 & 0.05 & -0.13 & 0.90 \\ 
+  13 & yield.l3 & -0.95 & 0.44 & -2.19 & 0.06 \\ 
+  14 & pc1.l3 & 0.08 & 0.04 & 2.13 & 0.07 \\ 
+  15 & pc2.l3 & 0.02 & 0.03 & 0.46 & 0.66 \\ 
+  16 & pc3.l3 & -0.04 & 0.06 & -0.73 & 0.49 \\ 
+  17 & pc4.l3 & -0.00 & 0.04 & -0.04 & 0.97 \\ 
+  18 & pc5.l3 & 0.02 & 0.07 & 0.28 & 0.78 \\ 
+  19 & const & 0.00 & 0.07 & 0.02 & 0.98 \\ 
+   \hline
+\end{tabular}
+\end{table}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+\subsection{Long Short-Term Memory}
+%---SLIDE 34----
+\begin{frame}{Data Preparation}
+\begin{itemize}
+    \item Like the VAR model, the datasets were firstly gathered and transformed into a tidy form
+    \item It is important to reshape the dataset first into an appropriate format by scaling it
+    \begin{itemize}
+        \item In this case, a standard scaler was used to scale both the wheat yield and AACI data
+    \end{itemize}
+    \item 5-year lags of each variable were included in the dataset, considering the possibility of correlation between present and past values of each variable
+\end{itemize}
+\end{frame}
+
+%---SLIDE 35----
+\begin{frame}{Hyperparameter Tuning Result}
+\begin{center}
+    \begin{itemize}
+        \item As mentioned previously, the Bayesian Optimization was used to do the hyperarameter tuning
+        \item BO has achieved its optimized level after three iterations (MSE: 0.00034)
+    \end{itemize}
+    \vspace{0.5cm}
+             \scriptsize{\textbf{Table 4} Best Parameters by Hyperparameter Tuning}\\
+                \begin{tabular}{||c c c||} 
+                \hline
+                Parameters & Hyperparameter Space & Best Value \\ [0.5ex] 
+                 \hline\hline
+                 Activation Function & \{relu,tanh,linear,selu,elu\} & relu \\ 
+                 \hline
+                 Number of RNN Layers & [0,20] & 12 \\
+                \hline
+                 Recurrent Dropout & [0,0.99] & 0.5 \\
+                \hline
+                 Number of Units & [0,100] & 64 \\
+                 \hline
+                 Learning Rate & [1e-10,1e-2] & 0.01 \\ [1ex] 
+                 \hline
+                \end{tabular}       
+\end{center}
+\end{frame}
+
+%---SLIDE 36----
+\begin{frame}{LSTM Forecasting Result}
+    \begin{tabular}{cl}
+        \begin{tabular}{c}
+        \scriptsize{\textbf{Figure 11} Training and Validation Loss}\\
+            \includegraphics[scale=0.45]{losscurve.JPG}
+        \end{tabular}
+        & \begin{tabular}{l}
+             \parbox{0.5\linewidth}{
+            \scriptsize{\textbf{Figure 12} Forecasting Result}\\
+            \includegraphics[scale=0.45]{lstm.JPG}
+                }
+        \end{tabular}\\
+    \end{tabular}
+\end{frame}
+
+%---SLIDE 36----
+\begin{frame}{Summary of Performance}
+\begin{center}
+    \begin{itemize}
+        \item Finally, after doing both VAR and LSTM modelling, the RMSE and MAPE values were compared between the two models to determine which model is the best to forecast wheat yield using AACI in this study
+    \end{itemize}
+    \vspace{0.5cm}
+             \scriptsize{\textbf{Table 5} Summary of Performance}\\
+                \begin{tabular}{||c c c||} 
+                \hline
+                Model & RMSE (t/ha) & MAPE \\ [0.5ex] 
+                 \hline\hline
+                 VAR & 0.9591347 & 38.28\% \\
+                 \hline
+                 LSTM & 0.1961116 & 8.32\% \\ [1ex] 
+                 \hline
+                \end{tabular}       
+\end{center}
+\end{frame}
+
+\section{Conclusion}
+\subsection{Conclusion}
+%---SLIDE 37----
+\begin{frame}{Conclusion}
+\begin{itemize}
+    \item As an effort to face climate change in Australia, this study was intended to forecast the Australian wheat yield by using the Australian Actuaries Climate Index (AACI)
+    \item The process of hyperparameter tuning has suggested a VAR(3) model and LSTM model of 12 layers and 64 units (neurons)
+    \item This study has implied the usability of AACI to forecast Australian wheat yield and opened the possibility of using the index to formulate a weather-based crop insurance products in Australia
+\end{itemize}
+\end{frame}
+
+%---SLIDE 38----
+\begin{frame}{Limitations of the Study}
+    \begin{itemize}
+        \item As the use of AACI to forecast Australian wheat yield was examined in this study, non-climatic events such as socio-political events and the Covid-19 pandemic was not focused on this study
+        \item Several technical difficulties such as long
+        training time in developing the LSTM model due to hardware limitations and sudden notebook reset that caused memory loss was encountered during the study
+    \end{itemize}
+\end{frame}
+
+%---SLIDE 39----
+\begin{frame}{Recommendation for Future Studies}
+    \begin{itemize}
+        \item Future studies may look for other sources of crop datasets with quarter granularity to be used for the dependent variable, so that the number of observations can be increased
+        \item To complement the AACI, other types of datasets can also be used as the independent
+        variable for crop modelling
+        \item Studies with more financial and technical advantages may also utilize AutoML in cloud machines to experiment with multiple forecasting models
+    \end{itemize}   
+\end{frame}
+
+\usebackgroundtemplate{\includegraphics[scale=0.2]{imageedit_10_6670491566.png}}
+\makeatletter 
+    \setbeamertemplate{headline}[default]
+    \def\beamer@entrycode{\vspace*{-\headheight}}
+\makeatother
+\begin{frame}{}
+    \centering \Large
+    \textbf{Thank you!} \\
+    \vspace{10pt}
+    \small
+    Matthew Farant Andreson\\
+    Actuarial Studies\\
+    Asia Pacific University of Technology and Innovation\\
+    TP053983@mail.apu.edu.my\\
+    \vspace{10pt}
+    Special thanks to:\\
+    Supervisor | Dr. Ho Ming Kang\\
+    Second Marker | Mohamed Ubaidullah
+\end{frame}
+\end{document}

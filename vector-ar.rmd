@@ -1,0 +1,209 @@
+---
+title: "Wheat Yield Forecasting Using Vector Autoregressive Model"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+Importing The libraries
+
+```{r}
+library(tsm)
+library(vars)
+library(mFilter)
+library(tidyverse)
+library(ggfortify)
+library(readr)
+```
+
+Input dataset
+
+```{r}
+final_data <- read_csv(file.choose())
+View(final_data)
+```
+
+Data Pre-Processing
+
+```{r}
+head(final_data)
+```
+
+```{r}
+library(ggcorrplot)
+ggcorrplot(cor(final_data[,2:15]),lab_size=.1)+
+theme(axis.text.y = element_text(size=3),
+      axis.text.x = element_text(size=3, angle=90))+
+labs(title='Correlation Matrix',subtitle='(Using Pearson Correlation Coefficient)')
+```
+
+Feature Engineering
+
+```{r}
+library(caret)
+subset(nearZeroVar(final_data,saveMetrics = T),subset = nzv == TRUE)
+```
+Remove Zero Columns
+```{r}
+final_data<-final_data %>% dplyr::select(-'ST_SL',-'SV_SL')
+```
+PCA
+
+```{r}
+aaci_pca <- prcomp(final_data[,3:89], center = TRUE,scale. = TRUE)
+plot(aaci_pca,type='l',main='Scree Plot')
+```
+
+```{r}
+autoplot(aaci_pca,data = final_data,loadings=TRUE,loadings.label = TRUE)
+summary(aaci_pca)
+```
+Conclusion: use 5 PCs
+```{r}
+pca_data<-data.frame(
+  Year = final_data$Year,
+  Yield = final_data$Yield,
+  pc1 = aaci_pca$x[,1],
+  pc2 = aaci_pca$x[,2],
+  pc3 = aaci_pca$x[,3],
+  pc4 = aaci_pca$x[,4],
+  pc5 = aaci_pca$x[,5]
+)
+head(pca_data)
+```
+```{r}
+pca_data %>% 
+  gather('Yield','pc1','pc2','pc3','pc4','pc5',key='key',value='value') %>% 
+  ggplot(aes(x=Year,y=value,col=key))+
+  geom_line()
+```
+
+
+Training - Testing Splitting
+
+```{r}
+pca_data %>% 
+  filter(Year<=2010)->train_final_data
+pca_data %>% 
+  filter(Year>2010)->test_final_data
+
+yield <- ts(train_final_data$Yield, start = 1981)
+pc1 <- ts(train_final_data$pc1, start = 1981)
+pc2 <- ts(train_final_data$pc2, start = 1981)
+pc3 <- ts(train_final_data$pc3, start = 1981)
+pc4 <- ts(train_final_data$pc4, start = 1981)
+pc5 <- ts(train_final_data$pc5, start = 1981)
+```
+
+Stationarity Test
+```{r}
+library(tseries)
+adf.test(diff(yield))
+adf.test(diff(diff(pc1)))
+adf.test(diff(diff(pc2)))
+adf.test(diff(pc3))
+adf.test(diff(diff(pc4)))
+adf.test(diff(pc5))
+
+yield<-diff(yield)
+pc1<-diff(diff(pc1))
+pc2<-diff(diff(pc2))
+pc3<-diff(pc3)
+pc4<-diff(diff(pc4))
+pc5<-diff(pc5)
+```
+
+Modelling
+```{r}
+dat.bv<-cbind(yield,pc1,pc2,pc3,pc4,pc5)
+colnames(dat.bv)<-c("yield","pc1","pc2","pc3","pc4","pc5")
+#dat.bv<-na.omit(dat.bv)
+
+dat.bv[is.na(dat.bv)]=0
+dat.bv
+
+#Selecting VAR parameter
+info.bv <- VARselect(dat.bv, lag.max = 12, type = "const")
+info.bv$selection
+```
+Order Choose
+```{r}
+bv.est <- VAR(dat.bv, p = 3, type = "const", season = NULL, 
+              exog = NULL)
+summary(bv.est)
+```
+
+Granger
+```{r}
+causality(bv.est,cause=c('pc1','pc2','pc3','pc4','pc5'))
+
+```
+IRF
+```{r}
+irf.yield <- irf(bv.est, impulse = c('pc1','pc2','pc3','pc4','pc5'), response = "yield", 
+    n.ahead = 40, boot = TRUE)
+plot(irf.yield, ylab = "output", main = "Shock from AACI")
+```
+
+Predictions
+
+```{r}
+predictions <- predict(bv.est, n.ahead = 10, ci = 0.95)
+yield <- ts(pca_data$Yield, start = 1981)
+yield_predictions<-data.frame(predictions$fcst$yield)
+yield_predictions<-gather(yield_predictions,key='Type',value='Yield')
+yield_predictions<-yield_predictions %>% mutate(Type_complete=ifelse(Type=='fcst','Forecast',NA))
+
+rbind(
+  data.frame(
+    Year = seq(1981,2020,1),
+    Yield=as.numeric(yield),
+    Type='Actual'
+  )
+  ,
+  data.frame(Year=rep(2011:2020,4)
+             ,Yield=(yield_predictions %>% group_by(Type) %>% transmute(Yield=cumsum(Yield)+2.030100))$Yield
+             ,Type=yield_predictions$Type) %>% 
+    filter(Type %in% c('fcst'))
+) %>% 
+mutate(linetype=ifelse(Type %in% c('upper','lower'),1,0))->result_data
+
+result_data[result_data < 0] = 0
+
+ggplot(result_data,aes(x=Year,y=Yield,col=Type))+
+  geom_line(size=1)+
+  labs(title='Actual vs. Forecast (VAR)')+
+  ylab('Yield (t/ha)')+
+  scale_color_discrete(name = "Type", labels = c("Actual","Forecast"))+
+  theme_light()
+```
+
+RMSE
+```{r}
+RMSE(cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100,result_data[30:39,]$Yield)
+```
+
+MAPE
+```{r}
+mean(
+  abs(result_data[30:39,]$Yield - (cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100))/result_data[30:39,]$Yield) * 100
+```
+Jarque Bera Test
+```{r}
+jarque.bera.test(cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100-result_data[30:39,]$Yield)
+```
+
+```{r}
+qqnorm(cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100-result_data[30:39,]$Yield)
+qqline(cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100-result_data[30:39,]$Yield)
+```
+Durbin Watson Test
+
+```{r}
+library(car)
+durbinWatsonTest(cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100-result_data[30:39,]$Yield)
+```
+```{r}
+plot(2011:2020,cumsum(data.frame(predictions$fcst$yield)$fcst)+2.030100-result_data[30:39,]$Yield,main='Residual vs. Fitted Plot')
+abline(0,0)
+
+```
